@@ -213,7 +213,7 @@ flowchart TD
 ### 1. 克隆项目
 
 ```bash
-git clone https://github.com/your-username/deep-researcher.git
+git clone https://github.com/duke-mar/DeepReaecher-AI.git
 cd deep-researcher
 ```
 
@@ -727,8 +727,8 @@ docker compose down
 
 如有问题或建议，请通过以下方式联系：
 
-- 提交 [GitHub Issue](https://github.com/your-username/deep-researcher/issues)
-- 发送邮件至：your-email@example.com
+- 提交 [GitHub Issue](https://github.com/duke-mar/DeepReaecher-AI/issues)
+- 发送邮件至：741135108@qq.com
 
 ---
 
