@@ -1,0 +1,1195 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Deep Researcher</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%23000'/%3E%3Ctext x='4' y='24' font-family='Arial,sans-serif' font-size='22' font-weight='bold'%3E%3Ctspan fill='white'%3ED%3C/tspan%3E%3Ctspan fill='%23e82127'%3ER%3C/tspan%3E%3C/text%3E%3C/svg%3E">
+<script src="https://cdn.jsdelivr.net/npm/marked@14.0.0/marked.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  :root {
+    --bg-primary: #000000;
+    --bg-secondary: #0a0a0a;
+    --bg-tertiary: #111111;
+    --bg-card: #161616;
+    --border: #222222;
+    --border-light: #333333;
+    --text-primary: #ffffff;
+    --text-secondary: #999999;
+    --text-tertiary: #666666;
+    --accent: #e82127;
+    --accent-glow: rgba(232, 33, 39, 0.15);
+    --success: #00d26a;
+    --warning: #ffc107;
+  }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    height: 100vh;
+    overflow: hidden;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* === Layout === */
+  .app {
+    display: flex;
+    height: 100vh;
+  }
+
+  .content-area {
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--border);
+    min-width: 0;
+  }
+
+  .progress-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-secondary);
+    min-width: 280px;
+    max-width: 360px;
+  }
+
+  /* === Header === */
+  .header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 32px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg-primary);
+    min-height: 56px;
+  }
+
+  .logo {
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .logo span {
+    color: var(--accent);
+  }
+
+  .status-badge {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+  }
+
+  .status-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    transition: background 0.3s;
+  }
+
+  .status-dot.active {
+    background: var(--success);
+    box-shadow: 0 0 8px rgba(0, 210, 106, 0.5);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* === Output Area === */
+  .output-area {
+    flex: 1;
+    overflow-y: auto;
+    padding: 40px 48px;
+    scroll-behavior: smooth;
+  }
+
+  .output-area::-webkit-scrollbar { width: 4px; }
+  .output-area::-webkit-scrollbar-track { background: transparent; }
+  .output-area::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: 2px; }
+
+  .welcome-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    opacity: 0.6;
+  }
+
+  .welcome-screen h1 {
+    font-size: 48px;
+    font-weight: 300;
+    letter-spacing: -1px;
+    margin-bottom: 12px;
+  }
+
+  .welcome-screen p {
+    font-size: 16px;
+    color: var(--text-secondary);
+    font-weight: 300;
+  }
+
+  .output-content {
+    display: none;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--text-secondary);
+    max-width: 800px;
+  }
+
+  .output-content h1 { font-size: 28px; font-weight: 600; color: var(--text-primary); margin: 32px 0 16px; }
+  .output-content h2 { font-size: 22px; font-weight: 600; color: var(--text-primary); margin: 28px 0 12px; }
+  .output-content h3 { font-size: 18px; font-weight: 600; color: var(--text-primary); margin: 24px 0 10px; }
+  .output-content p { margin: 12px 0; }
+  .output-content ul, .output-content ol { margin: 12px 0; padding-left: 24px; }
+  .output-content li { margin: 6px 0; }
+  .output-content code {
+    background: var(--bg-tertiary);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+  }
+  .output-content pre {
+    background: var(--bg-tertiary);
+    padding: 16px 20px;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+  }
+  .output-content pre code { background: none; padding: 0; }
+  .output-content blockquote {
+    border-left: 3px solid var(--accent);
+    padding-left: 16px;
+    margin: 16px 0;
+    color: var(--text-tertiary);
+  }
+  .output-content a { color: var(--accent); text-decoration: none; }
+  .output-content a:hover { text-decoration: underline; }
+  .output-content h2:has(+ ul) { margin-bottom: 4px; }
+  .output-content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+
+  /* User Query */
+  .user-query {
+    margin-bottom: 32px;
+    padding: 20px 24px;
+    background: var(--bg-tertiary);
+    border-radius: 12px;
+    border-left: 3px solid var(--accent);
+  }
+
+  .user-query-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+  }
+
+  .user-query-text {
+    font-size: 16px;
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .result-section {
+    padding-top: 8px;
+  }
+
+  /* === Sources === */
+  .sources-section { margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--border); }
+  .sources-section h2 { font-size: 14px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-tertiary); margin-bottom: 12px; }
+  .source-item {
+    font-size: 12px;
+    color: var(--text-tertiary);
+    padding: 4px 0;
+    word-break: break-all;
+  }
+  .source-item a { color: var(--text-tertiary); }
+  .source-item a:hover { color: var(--accent); }
+
+  /* === Report Wrapper === */
+  .report-wrapper {
+    position: relative;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 16px;
+    background: var(--bg-secondary);
+  }
+
+  .report-actions {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .report-wrapper:hover .report-actions {
+    opacity: 1;
+  }
+
+  .action-btn {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+
+  .action-btn:hover {
+    background: var(--border);
+    color: var(--text-primary);
+  }
+
+  .action-btn.copied {
+    background: var(--success);
+    color: var(--bg-primary);
+    border-color: var(--success);
+  }
+
+  .warning-banner {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(232, 33, 39, 0.15);
+    border: 1px solid var(--accent);
+    border-radius: 6px;
+    padding: 6px 16px;
+    font-size: 12px;
+    color: var(--accent);
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .report-wrapper:hover .warning-banner {
+    opacity: 1;
+  }
+
+  /* === Input Area === */
+  .input-area {
+    padding: 20px 32px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-primary);
+  }
+
+  .input-row {
+    display: flex;
+    gap: 12px;
+    align-items: flex-end;
+  }
+
+  .input-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .query-input {
+    width: 100%;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 18px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-family: inherit;
+    resize: none;
+    outline: none;
+    transition: border-color 0.2s;
+    min-height: 48px;
+    max-height: 120px;
+  }
+
+  .query-input:focus {
+    border-color: var(--border-light);
+  }
+
+  .query-input::placeholder {
+    color: var(--text-tertiary);
+  }
+
+  .controls-row {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    align-items: center;
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .control-label {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .control-input {
+    width: 52px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 8px;
+    color: var(--text-primary);
+    font-size: 13px;
+    font-family: inherit;
+    text-align: center;
+    outline: none;
+  }
+
+  .control-input:focus { border-color: var(--border-light); }
+
+  .mode-select {
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-family: inherit;
+    outline: none;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+
+  .mode-select option { background: var(--bg-tertiary); }
+
+  .send-btn {
+    background: var(--text-primary);
+    color: var(--bg-primary);
+    border: none;
+    border-radius: 12px;
+    padding: 14px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+    min-height: 48px;
+  }
+
+  .send-btn:hover {
+    background: #e0e0e0;
+    transform: translateY(-1px);
+  }
+
+  .send-btn:active { transform: translateY(0); }
+
+  .send-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .send-btn.loading {
+    pointer-events: none;
+  }
+
+  .send-btn.loading::after {
+    content: '';
+    display: inline-block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid var(--bg-primary);
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* === Progress Panel === */
+  .panel-header {
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--border);
+    min-height: 56px;
+    display: flex;
+    align-items: center;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-tertiary);
+    font-weight: 500;
+  }
+
+  .panel-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 16px 20px;
+  }
+
+  .panel-content::-webkit-scrollbar { width: 3px; }
+  .panel-content::-webkit-scrollbar-track { background: transparent; }
+  .panel-content::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  /* Progress Items */
+  .progress-item {
+    margin-bottom: 20px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .progress-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    color: var(--text-tertiary);
+    margin-bottom: 8px;
+    font-weight: 500;
+  }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 3px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--accent);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    width: 0%;
+  }
+
+  .progress-stats {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Query Log */
+  .query-log {
+    margin-top: 20px;
+  }
+
+  .query-entry {
+    padding: 10px 12px;
+    background: var(--bg-tertiary);
+    border-radius: 8px;
+    margin-bottom: 8px;
+    border-left: 2px solid var(--border);
+    animation: slideIn 0.3s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateX(-8px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .query-entry.active {
+    border-left-color: var(--accent);
+    background: var(--accent-glow);
+  }
+
+  .query-entry.done {
+    border-left-color: var(--success);
+    opacity: 0.6;
+  }
+
+  .query-entry.searching {
+    border-left-color: var(--warning);
+    background: rgba(255, 193, 7, 0.1);
+  }
+
+  .query-entry.failed {
+    border-left-color: #ff5252;
+    background: rgba(255, 82, 82, 0.1);
+  }
+
+  .query-text {
+    font-size: 12px;
+    color: var(--text-secondary);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  .query-meta {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    margin-top: 4px;
+  }
+
+  .search-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    margin-top: 6px;
+    padding: 2px 8px;
+    border-radius: 4px;
+    background: var(--bg-secondary);
+  }
+
+  .search-status.searching {
+    color: var(--warning);
+  }
+
+  .search-status.success {
+    color: var(--success);
+  }
+
+  .search-status.failed {
+    color: #ff5252;
+  }
+
+  .search-status .spinner {
+    width: 8px;
+    height: 8px;
+    border: 1.5px solid currentColor;
+    border-top-color: transparent;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+
+  /* URL Log */
+  .url-log {
+    margin-top: 20px;
+  }
+
+  .url-entry {
+    font-size: 11px;
+    color: var(--text-tertiary);
+    padding: 3px 0;
+    word-break: break-all;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    animation: fadeIn 0.3s ease;
+  }
+
+  .url-icon {
+    width: 12px;
+    height: 12px;
+    min-width: 12px;
+    border-radius: 50%;
+    background: var(--border);
+    margin-top: 3px;
+  }
+
+  .url-entry a {
+    color: var(--text-tertiary);
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  .url-entry a:hover { color: var(--accent); }
+
+  /* Empty state */
+  .empty-state {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--text-tertiary);
+    font-size: 13px;
+  }
+
+  .empty-icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+    opacity: 0.3;
+  }
+
+  /* Phase indicator */
+  .phase-indicator {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    background: var(--bg-tertiary);
+    border: 1px solid var(--border);
+    margin-bottom: 16px;
+  }
+
+  .phase-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--accent);
+    animation: pulse 1.5s infinite;
+  }
+
+  /* Thinking animation */
+  .thinking {
+    display: inline-flex;
+    gap: 4px;
+    padding: 8px 0;
+  }
+  .thinking span {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--text-tertiary);
+    animation: bounce 1.4s ease-in-out infinite;
+  }
+  .thinking span:nth-child(2) { animation-delay: 0.2s; }
+  .thinking span:nth-child(3) { animation-delay: 0.4s; }
+
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.3; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
+  /* Responsive */
+  @media (max-width: 900px) {
+    .app { flex-direction: column; }
+    .content-area { border-right: none; border-bottom: 1px solid var(--border); }
+    .progress-panel { max-width: none; min-width: 0; height: 300px; }
+    .output-area { padding: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <!-- Left: Content Area (4/5) -->
+  <div class="content-area">
+    <div class="header">
+      <div class="logo">Deep<span>Research</span></div>
+      <div class="status-badge">
+        <div class="status-dot" id="statusDot"></div>
+        <span id="statusText">就绪</span>
+      </div>
+    </div>
+
+    <div class="output-area" id="outputArea">
+      <div class="welcome-screen" id="welcomeScreen">
+        <h1>Deep Research</h1>
+        <p>AI 驱动的深度研究助手，支持多步推理</p>
+      </div>
+      <div class="output-content" id="outputContent"></div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-row">
+        <div class="input-wrapper">
+          <textarea
+            class="query-input"
+            id="queryInput"
+            placeholder="输入你想搜索研究的问题"
+            rows="1"
+          ></textarea>
+        </div>
+        <button class="send-btn" id="sendBtn" onclick="startResearch()">开始研究</button>
+      </div>
+      <div class="controls-row">
+        <div class="control-group">
+          <span class="control-label">深度</span>
+          <input class="control-input" id="depthInput" type="number" value="3" min="1" max="10">
+        </div>
+        <div class="control-group">
+          <span class="control-label">广度</span>
+          <input class="control-input" id="breadthInput" type="number" value="3" min="1" max="10">
+        </div>
+        <div class="control-group">
+          <span class="control-label">模式</span>
+          <select class="mode-select" id="modeSelect">
+            <option value="report">研究报告</option>
+            <option value="answer">简短回答</option>
+          </select>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: Progress Panel (1/5) -->
+  <div class="progress-panel">
+    <div class="panel-header">
+      <div class="panel-title">研究过程</div>
+    </div>
+    <div class="panel-content" id="panelContent">
+      <div class="empty-state" id="emptyState">
+        <div class="empty-icon">&#x1F50D;</div>
+        <p>开始一个研究问题<br>在这里查看研究过程</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let eventSource = null;
+  let isRunning = false;
+  let progressData = { completed: 0, total: 0 };
+
+  // Auto-resize textarea
+  const queryInput = document.getElementById('queryInput');
+  queryInput.addEventListener('input', function() {
+    this.style.height = 'auto';
+    this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+  });
+  queryInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      startResearch();
+    }
+  });
+
+  function setStatus(active, text) {
+    const dot = document.getElementById('statusDot');
+    const label = document.getElementById('statusText');
+    dot.classList.toggle('active', active);
+    label.textContent = text;
+  }
+
+  function clearPanel() {
+    const panel = document.getElementById('panelContent');
+    panel.innerHTML = '';
+  }
+
+  function addPhaseIndicator(text) {
+    const panel = document.getElementById('panelContent');
+    let existing = document.getElementById('phaseIndicator');
+    if (existing) {
+      existing.querySelector('.phase-text').textContent = text;
+      return existing;
+    }
+    const el = document.createElement('div');
+    el.className = 'phase-indicator';
+    el.id = 'phaseIndicator';
+    el.innerHTML = `<div class="phase-dot"></div><span class="phase-text">${text}</span>`;
+    panel.appendChild(el);
+    return el;
+  }
+
+  function addProgressSection(id, label) {
+    const panel = document.getElementById('panelContent');
+    const existing = document.getElementById(id);
+    if (existing) return existing;
+
+    const item = document.createElement('div');
+    item.className = 'progress-item';
+    item.id = id;
+    item.innerHTML = `
+      <div class="progress-label">${label}</div>
+      <div class="progress-bar-track"><div class="progress-bar-fill" id="${id}Bar"></div></div>
+      <div class="progress-stats" id="${id}Stats">等待中...</div>
+    `;
+    panel.appendChild(item);
+    return item;
+  }
+
+  function updateProgress(id, percent, statsText) {
+    const bar = document.getElementById(id + 'Bar');
+    const stats = document.getElementById(id + 'Stats');
+    if (bar) bar.style.width = percent + '%';
+    if (stats) stats.textContent = statsText;
+  }
+
+  function addQueryEntry(query, meta, isActive, searchStatus) {
+    const panel = document.getElementById('panelContent');
+    let logContainer = document.getElementById('queryLog');
+    if (!logContainer) {
+      logContainer = document.createElement('div');
+      logContainer.className = 'query-log';
+      logContainer.id = 'queryLog';
+      const logLabel = document.createElement('div');
+      logLabel.className = 'progress-label';
+      logLabel.textContent = '查询';
+      logContainer.appendChild(logLabel);
+      panel.appendChild(logContainer);
+    }
+
+    let statusClass = isActive ? ' active' : '';
+    let statusHtml = '';
+
+    if (searchStatus === 'searching') {
+      statusClass = ' searching';
+      statusHtml = `<div class="search-status searching"><div class="spinner"></div>正在联网检索...</div>`;
+    } else if (searchStatus === 'success') {
+      statusClass = ' done';
+      statusHtml = `<div class="search-status success">✓ 联网成功</div>`;
+    } else if (searchStatus === 'failed') {
+      statusClass = ' failed';
+      statusHtml = `<div class="search-status failed">✗ 联网失败</div>`;
+    }
+
+    // Check if entry already exists for this query
+    const existingEntries = logContainer.querySelectorAll('.query-entry');
+    let entry = null;
+
+    for (const e of existingEntries) {
+      if (e.querySelector('.query-text')?.textContent === query) {
+        entry = e;
+        break;
+      }
+    }
+
+    if (!entry) {
+      entry = document.createElement('div');
+      entry.className = 'query-entry' + statusClass;
+      entry.innerHTML = `
+        <div class="query-text">${escapeHtml(query)}</div>
+        ${meta ? `<div class="query-meta">${escapeHtml(meta)}</div>` : ''}
+        ${statusHtml}
+      `;
+      logContainer.appendChild(entry);
+
+      // Mark previous as done
+      const entries = logContainer.querySelectorAll('.query-entry.active');
+      entries.forEach((e, i) => { if (i < entries.length - 1) e.classList.replace('active', 'done'); });
+    } else {
+      entry.className = 'query-entry' + statusClass;
+      const existingStatus = entry.querySelector('.search-status');
+      if (existingStatus) {
+        existingStatus.remove();
+      }
+      if (statusHtml) {
+        entry.insertAdjacentHTML('beforeend', statusHtml);
+      }
+    }
+
+    logContainer.scrollTop = logContainer.scrollHeight;
+  }
+
+  function addUrlEntry(url) {
+    const panel = document.getElementById('panelContent');
+    let urlContainer = document.getElementById('urlLog');
+    if (!urlContainer) {
+      urlContainer = document.createElement('div');
+      urlContainer.className = 'url-log';
+      urlContainer.id = 'urlLog';
+      const urlLabel = document.createElement('div');
+      urlLabel.className = 'progress-label';
+      urlLabel.style.marginTop = '16px';
+      urlLabel.textContent = '访问的链接';
+      urlContainer.appendChild(urlLabel);
+      panel.appendChild(urlContainer);
+    }
+
+    const entry = document.createElement('div');
+    entry.className = 'url-entry';
+    entry.innerHTML = `<div class="url-icon"></div><a href="${escapeHtml(url)}" target="_blank" rel="noopener">${escapeHtml(truncateUrl(url))}</a>`;
+    urlContainer.appendChild(entry);
+    urlContainer.scrollTop = urlContainer.scrollHeight;
+  }
+
+  function truncateUrl(url) {
+    try {
+      const u = new URL(url);
+      let path = u.pathname.length > 40 ? u.pathname.slice(0, 40) + '...' : u.pathname;
+      return u.hostname + path;
+    } catch { return url.slice(0, 60); }
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement('div');
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function parseMarkdown(text) {
+    try {
+      // marked v15+: window.marked with marked.parse()
+      if (typeof marked !== 'undefined') {
+        if (typeof marked.parse === 'function') return marked.parse(text);
+        if (typeof marked === 'function') return marked(text);
+      }
+    } catch (e) {
+      console.warn('marked.parse failed, using fallback:', e);
+    }
+    // Fallback: basic markdown rendering
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/^### (.+)$/gm, '<h3>$1</h3>')
+      .replace(/^## (.+)$/gm, '<h2>$1</h2>')
+      .replace(/^# (.+)$/gm, '<h1>$1</h1>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^- (.+)$/gm, '<li>$1</li>')
+      .replace(/(<li>.*<\/li>)/gs, '<ul>$1</ul>')
+      .replace(/\n{2,}/g, '</p><p>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function showOutput(markdown) {
+    document.getElementById('welcomeScreen').style.display = 'none';
+    const content = document.getElementById('outputContent');
+    content.style.display = 'block';
+    content.innerHTML = parseMarkdown(markdown);
+    document.getElementById('outputArea').scrollTop = 0;
+  }
+
+  function appendToOutput(html) {
+    document.getElementById('welcomeScreen').style.display = 'none';
+    const content = document.getElementById('outputContent');
+    content.style.display = 'block';
+    content.innerHTML += html;
+  }
+
+  function startResearch() {
+    if (isRunning) return;
+
+    const query = queryInput.value.trim();
+    if (!query) return;
+
+    const depth = document.getElementById('depthInput').value || 3;
+    const breadth = document.getElementById('breadthInput').value || 3;
+    const mode = document.getElementById('modeSelect').value;
+
+    isRunning = true;
+    progressData = { completed: 0, total: 0 };
+
+    // UI updates
+    document.getElementById('sendBtn').classList.add('loading');
+    document.getElementById('sendBtn').disabled = true;
+    queryInput.value = '';
+    queryInput.style.height = 'auto';
+    setStatus(true, '研究中...');
+    clearPanel();
+
+    // Show initial phase
+    addPhaseIndicator('AI 正在分析问题...');
+    addProgressSection('queriesProgress', '搜索查询');
+    addProgressSection('depthProgress', '研究深度');
+
+    // Show user query in output area
+    document.getElementById('welcomeScreen').style.display = 'none';
+    const content = document.getElementById('outputContent');
+    content.style.display = 'block';
+
+    // Add separator and new query (keep previous content)
+    const separator = document.createElement('hr');
+    separator.style.margin = '40px 0';
+    content.appendChild(separator);
+
+    const querySection = document.createElement('div');
+    querySection.innerHTML = `
+      <div class="user-query">
+        <div class="user-query-label">你的问题</div>
+        <div class="user-query-text">${escapeHtml(query)}</div>
+      </div>
+      <div class="thinking"><span></span><span></span><span></span></div>
+    `;
+    content.appendChild(querySection);
+    document.getElementById('outputArea').scrollTop = document.getElementById('outputArea').scrollHeight;
+
+    // SSE connection
+    const params = new URLSearchParams({ query, depth, breadth, mode });
+    eventSource = new EventSource('/api/research/stream?' + params.toString());
+
+    eventSource.addEventListener('status', (e) => {
+      const data = JSON.parse(e.data);
+      setStatus(true, data.message);
+      addPhaseIndicator(data.message);
+    });
+
+    eventSource.addEventListener('feedback', (e) => {
+      const data = JSON.parse(e.data);
+      if (data.questions && data.questions.length > 0) {
+        const panel = document.getElementById('panelContent');
+        const feedbackDiv = document.createElement('div');
+        feedbackDiv.className = 'progress-item';
+        feedbackDiv.innerHTML = `
+          <div class="progress-label">追问问题</div>
+          ${data.questions.map((q, i) => `
+            <div class="query-entry" style="border-left-color: var(--warning);">
+              <div class="query-text">${i + 1}. ${escapeHtml(q)}</div>
+            </div>
+          `).join('')}
+        `;
+        panel.appendChild(feedbackDiv);
+      }
+    });
+
+    eventSource.addEventListener('progress', (e) => {
+      const data = JSON.parse(e.data);
+      progressData.completed = data.completedQueries;
+      progressData.total = data.totalQueries;
+
+      const queryPercent = data.totalQueries > 0 ? (data.completedQueries / data.totalQueries * 100) : 0;
+      updateProgress('queriesProgress', queryPercent,
+        `${data.completedQueries} / ${data.totalQueries} 个查询已完成`);
+
+      const depthPercent = data.totalDepth > 0 ? ((data.totalDepth - data.currentDepth + 1) / data.totalDepth * 100) : 0;
+      updateProgress('depthProgress', depthPercent,
+        `深度 ${data.totalDepth - data.currentDepth + 1} / ${data.totalDepth}`);
+
+      if (data.currentQuery) {
+        addQueryEntry(data.currentQuery, `深度 ${data.currentDepth}, 广度 ${data.currentBreadth}`, true, data.searchStatus);
+      }
+
+      // Update phase indicator based on search status
+      if (data.searchStatus === 'searching') {
+        addPhaseIndicator('正在联网检索...');
+      } else if (data.searchStatus === 'success') {
+        addPhaseIndicator('AI 正在分析内容...');
+      } else if (data.searchStatus === 'failed') {
+        addPhaseIndicator('AI 研究中...');
+      }
+    });
+
+    eventSource.addEventListener('complete', (e) => {
+      const data = JSON.parse(e.data);
+      finishResearch(data.output, data.visitedUrls);
+    });
+
+    eventSource.addEventListener('error', (e) => {
+      if (e.data) {
+        try {
+          const data = JSON.parse(e.data);
+          finishResearch(`**错误：** ${data.message}`);
+        } catch {
+          finishResearch('**错误：** 未知错误，请重试。');
+        }
+      } else {
+        finishResearch('**错误：** 连接中断，请重试。');
+      }
+    });
+
+    eventSource.onerror = () => {
+      if (isRunning) {
+        finishResearch('**错误：** 无法连接到服务器，请确认服务已启动后重试。');
+      }
+    };
+  }
+
+  function finishResearch(output, urls) {
+    isRunning = false;
+    if (eventSource) { eventSource.close(); eventSource = null; }
+
+    document.getElementById('sendBtn').classList.remove('loading');
+    document.getElementById('sendBtn').disabled = false;
+    setStatus(false, '完成');
+    addPhaseIndicator('研究完成');
+
+    if (output) {
+      // Remove thinking animation, show result
+      const content = document.getElementById('outputContent');
+
+      // Find and remove the thinking animation
+      const thinkingEl = content.querySelector('.thinking');
+      if (thinkingEl) {
+        thinkingEl.remove();
+      }
+
+      // Check if we have real search results
+      const hasRealSearchResults = urls && urls.length > 0;
+
+      // Build warning banner if no real search results
+      const warningBanner = hasRealSearchResults ? '' : `
+        <div class="warning-banner">⚠ 注意：未成功联网检索，本报告内容由大模型生成，可能存在幻觉，请自行核实</div>
+      `;
+
+      // Wrap report with action buttons
+      const reportHtml = `
+        <div class="report-wrapper" id="reportWrapper">
+          ${warningBanner}
+          <div class="report-actions">
+            <button class="action-btn" onclick="copyReport()">复制</button>
+            <button class="action-btn" onclick="exportMarkdown()">导出</button>
+          </div>
+          <div class="report-body">
+            ${parseMarkdown(output)}
+          </div>
+        </div>
+      `;
+
+      // Append report instead of replacing
+      const resultSection = document.createElement('div');
+      resultSection.className = 'result-section';
+      resultSection.innerHTML = reportHtml;
+      content.appendChild(resultSection);
+
+      document.getElementById('outputArea').scrollTop = document.getElementById('outputArea').scrollHeight;
+    }
+
+    // Add URLs to panel
+    if (urls && urls.length > 0) {
+      urls.forEach(url => addUrlEntry(url));
+    }
+
+    // Update final progress
+    updateProgress('queriesProgress', 100, `${progressData.completed} 个查询已完成`);
+    updateProgress('depthProgress', 100, '研究完成');
+  }
+
+  function copyReport() {
+    const reportBody = document.querySelector('.report-body');
+    if (!reportBody) return;
+
+    // Get plain text content
+    const text = reportBody.innerText;
+
+    navigator.clipboard.writeText(text).then(() => {
+      const btn = document.querySelector('.action-btn');
+      btn.textContent = '已复制';
+      btn.classList.add('copied');
+      setTimeout(() => {
+        btn.textContent = '复制';
+        btn.classList.remove('copied');
+      }, 2000);
+    }).catch(err => {
+      console.error('复制失败:', err);
+    });
+  }
+
+  function exportMarkdown() {
+    const reportBody = document.querySelector('.report-body');
+    if (!reportBody) return;
+
+    // Get text content and format as markdown
+    const text = reportBody.innerText;
+    const blob = new Blob([text], { type: 'text/markdown;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `研究报告_${new Date().toISOString().slice(0, 10)}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+</script>
+
+</body>
+</html>

@@ -1,0 +1,7 @@
+services:
+  deep-research:
+    build: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env.local
