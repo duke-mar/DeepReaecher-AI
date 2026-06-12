@@ -226,7 +226,7 @@ npm install
 ### 3. 配置环境变量
 
 ```bash
-cp .env.example .env.local
+cp env.example .env.local
 ```
 
 编辑 `.env.local`，填入你的 API Key：
@@ -490,7 +490,7 @@ curl "http://localhost:3051/api/research/stream?query=量子计算&depth=3&bread
 
 ```
 deep-researcher/
-├── .env.example              # 环境变量模板
+├── env.example              # 环境变量模板
 ├── .env.local                # 本地环境变量（不提交）
 ├── .nvmrc                    # Node.js 版本
 ├── .gitignore
