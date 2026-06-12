@@ -26,9 +26,8 @@ AI 驱动的深度研究助手，支持递归多步推理与网页检索，自�
 ---
 
 ## 效果图
-
-[![1]](./public/1.png)
-[![2]](./public/2.png)
+![example1](/public/1.png)
+![example1](/public/2.png)
 
 ---
 
